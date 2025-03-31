@@ -9,7 +9,8 @@ const COLORS_BY_RARITY = {
 };
 
 export default function CustomPieChart({ category, onClick }) {
-  const fillPercent = (category.user_n / category.all_n) * 100;
+  const { user_n, all_n, name } = category;
+  const fillPercent = (user_n / all_n) * 100;
   const remainingPercent = 100 - fillPercent;
   
   const chartData = [
@@ -20,7 +21,7 @@ export default function CustomPieChart({ category, onClick }) {
   const categoryColor = COLORS_BY_RARITY[category.name.toLowerCase()] || '#8884d8';
 
   return (
-    <div className="chart-wrapper" onClick={() => onClick(category)}>
+    <div className="chart-wrapper" onClick={onClick}>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie

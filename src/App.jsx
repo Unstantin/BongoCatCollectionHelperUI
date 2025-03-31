@@ -46,14 +46,28 @@ function App() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5555?steamId=${steamId}`);
-      if (!response.ok) {
-        throw new Error('Ошибка сервера');
-      }
+      const response = await fetch(`http://localhost:15542?steamId=${steamId}&_=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        cache: 'no-store' // Важное современное решение
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
       const responseData = await response.json();
-      setData(responseData.general); // Сохраняем данные для диаграмм
+      console.log("Полные данные с сервера:", responseData);
+      
+      setData({
+        general: responseData.general,
+        collection: responseData.collection
+      });
     } catch (err) {
       setError(`Ошибка запроса: ${err.message}`);
+      console.error("Детали ошибки:", err);
     } finally {
       setIsLoading(false);
     }
@@ -61,9 +75,10 @@ function App() {
     setSelectedCategory(null);
   };
 
-  // Функция для обработки выбора категории
+  // Находим полные данные категории при выборе
   const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
+    const fullCategoryData = data.collection.find(c => c.name === category.name);
+    setSelectedCategory(fullCategoryData || category);
   };
 
   return (
@@ -86,57 +101,43 @@ function App() {
       {error && <p className="error">{error}</p>}
 
       {/* Показываем диаграммы, если есть данные */}
-      {data && (
+      {data?.general && (
         <div className="charts-container">
-          {data.map((category) => (
-            <div
-              key={category.name}
-              className={`chart ${selectedCategory?.name === category.name ? 'active' : ''}`}
-            >
+          {data.general.map((category) => (
+            <div key={category.name} className={`chart ${selectedCategory?.name === category.name ? 'active' : ''}`}>
               <h3>{category.name.toUpperCase()}</h3>
-              <CustomPieChart
-                category={category}
-                onClick={() => setSelectedCategory(category)}
+              <CustomPieChart 
+                category={category} 
+                onClick={() => handleCategorySelect(category)}
               />
             </div>
           ))}
         </div>
       )}
 
+      {selectedCategory && console.log("Selected category data:", selectedCategory)}
+      {selectedCategory && console.log("User items count", selectedCategory.user_items)}
+      {selectedCategory && console.log("Other items count", selectedCategory.other_items)}
+      
       {selectedCategory && (
         <div className="items-section">
+          <h2>{selectedCategory.name.toUpperCase()} ITEMS</h2>
+          <div className="items-stats">
+            <span>Collected: {selectedCategory.user_items?.length || 0}</span>
+            <span>Missing: {selectedCategory.other_items?.length || 0}</span>
+          </div>
           <div className="items-grid">
-            {/* Сначала выводим собранные предметы */}
+            {/* Collected items */}
             {selectedCategory.user_items?.map(item => (
-              <div key={`collected-${item.market_hash_name}`} className="item-card">
-                {item.icon_binary ? (
-                  <img
-                    src={`data:image/png;base64,${item.icon_binary}`}
-                    alt={item.name}
-                  />
-                ) : (
-                  <div className="image-placeholder">No Image</div>
-                )}
-                <span>{item.name}</span>
-                {item.sell_price_text && <span className="price">{item.sell_price_text}</span>}
+              <div key={`collected-${item.classid}`} className="item-card">
+                {/* ... рендер collected item ... */}
               </div>
             ))}
-
-            {/* Затем missing предметы */}
+            
+            {/* Missing items */}
             {selectedCategory.other_items?.map(item => (
               <div key={`missing-${item.hash_name}`} className="item-card missing">
-                {item.asset_description?.icon_url ? (
-                  <img
-                    src={`https://steamcommunity-a.akamaihd.net/economy/image/${item.asset_description.icon_url}`}
-                    alt={item.name}
-                  />
-                ) : (
-                  <div className="image-placeholder">No Image</div>
-                )}
-                <span>{item.name}</span>
-                {item.sell_price_text && (
-                  <span className="price missing-price">{item.sell_price_text}</span>
-                )}
+                {/* ... рендер missing item ... */}
               </div>
             ))}
           </div>

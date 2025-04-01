@@ -133,6 +133,7 @@ button:disabled {
 }
 
 .item-card {
+  position: relative;
   background: white;
   padding: 15px;
   border-radius: 8px;
@@ -205,4 +206,17 @@ button:disabled {
   border-left: 10px solid transparent;
   border-right: 10px solid transparent;
   border-top: 10px solid #007bff;
+}
+
+.item-event-tag {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: #ff6b6b;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: bold;
+  z-index: 1;
 }

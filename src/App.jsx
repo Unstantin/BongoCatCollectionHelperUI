@@ -55,12 +55,12 @@ function App() {
         },
         cache: 'no-store' // Важное современное решение
       });
-      
+
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      
+
       const responseData = await response.json();
       console.log("Полные данные с сервера:", responseData);
-      
+
       setData({
         general: responseData.general,
         collection: responseData.collection
@@ -77,8 +77,13 @@ function App() {
 
   // Находим полные данные категории при выборе
   const handleCategorySelect = (category) => {
-    const fullCategoryData = data.collection.find(c => c.name === category.name);
-    setSelectedCategory(fullCategoryData || category);
+    // Добавляем принудительный сброс перед установкой новой категории
+    setSelectedCategory(null); 
+    setTimeout(() => {
+      setSelectedCategory(
+        data.collection.find(c => c.name === category.name) || category
+      );
+    }, 0);
   };
 
   return (
@@ -104,45 +109,84 @@ function App() {
       {data?.general && (
         <div className="charts-container">
           {data.general.map((category) => (
-            <div key={category.name} className={`chart ${selectedCategory?.name === category.name ? 'active' : ''}`}>
-              <h3>{category.name.toUpperCase()}</h3>
-              <CustomPieChart 
-                category={category} 
-                onClick={() => handleCategorySelect(category)}
-              />
-            </div>
+            <CustomPieChart
+              key={category.name}
+              category={category}
+              isActive={selectedCategory?.name === category.name}
+              onClick={() => handleCategorySelect(category)}
+            />
           ))}
         </div>
       )}
 
       {selectedCategory && console.log("Selected category data:", selectedCategory)}
-      {selectedCategory && console.log("User items count", selectedCategory.user_items)}
-      {selectedCategory && console.log("Other items count", selectedCategory.other_items)}
-      
+
       {selectedCategory && (
-        <div className="items-section">
-          <h2>{selectedCategory.name.toUpperCase()} ITEMS</h2>
-          <div className="items-stats">
-            <span>Collected: {selectedCategory.user_items?.length || 0}</span>
-            <span>Missing: {selectedCategory.other_items?.length || 0}</span>
-          </div>
-          <div className="items-grid">
-            {/* Collected items */}
-            {selectedCategory.user_items?.map(item => (
-              <div key={`collected-${item.classid}`} className="item-card">
-                {/* ... рендер collected item ... */}
-              </div>
-            ))}
-            
-            {/* Missing items */}
-            {selectedCategory.other_items?.map(item => (
-              <div key={`missing-${item.hash_name}`} className="item-card missing">
-                {/* ... рендер missing item ... */}
-              </div>
-            ))}
-          </div>
+  <div className="items-section">
+    <h2>{selectedCategory.name.toUpperCase()} ITEMS</h2>
+    <div className="items-grid">
+      {/* Collected items */}
+      {selectedCategory.user_items?.map((item, index) => (
+        <div 
+          key={`collected-${selectedCategory.name}-${item.classid || index}`} 
+          className="item-card"
+        >
+          {item.binary_image ? (
+            <img
+              src={`data:image/png;base64,${item.binary_image}`}
+              alt={item.name}
+              className="item-image"
+              onError={(e) => {
+                if (item.icon_url) {
+                  e.target.src = `https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url}`;
+                } else {
+                  e.target.src = '/placeholder-collected.png';
+                }
+              }}
+            />
+          ) : item.icon_url ? (
+            <img
+              src={`https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url}`}
+              alt={item.name}
+              className="item-image"
+              onError={(e) => {
+                e.target.src = '/placeholder-collected.png';
+              }}
+            />
+          ) : (
+            <div className="image-placeholder">No Image</div>
+          )}
+          <span className="item-name">{item.name}</span>
         </div>
-      )}
+      ))}
+
+      {/* Missing items */}
+      {selectedCategory.other_items?.map((item, index) => (
+        <div
+          key={`missing-${selectedCategory.name}-${item.hash_name || index}`}
+          className="item-card missing"
+        >
+          {item.asset_description?.binary_image ? (
+            <img
+              src={`data:image/png;base64,${item.asset_description.binary_image}`}
+              alt={item.name}
+              className="item-image missing-image"
+            />
+          ) : item.asset_description?.icon_url ? (
+            <img
+              src={`https://steamcommunity-a.akamaihd.net/economy/image/${item.asset_description.icon_url}`}
+              alt={item.name}
+              className="item-image missing-image"
+            />
+          ) : (
+            <div className="image-placeholder">No Image</div>
+          )}
+          <span className="item-name">{item.name}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
     </div>
   );
 }
